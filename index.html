@@ -143,7 +143,8 @@
             if (gpaValue >= 3.7) return { text: 'Excellent', textColor: 'text-green-500', gpaColor: 'text-green-600' };
             if (gpaValue >= 3.0) return { text: 'Very Good', textColor: 'text-blue-500', gpaColor: 'text-blue-600' };
             if (gpaValue >= 2.0) return { text: 'Good', textColor: 'text-yellow-500', gpaColor: 'text-yellow-600' };
-            return { text: 'Pass', textColor: 'text-orange-500', gpaColor: 'text-orange-600' };
+            if (gpaValue >= 1.0) return { text: 'Pass', textColor: 'text-orange-500', gpaColor: 'text-orange-600' };
+            return { text: 'Fail', textColor: 'text-red-500', gpaColor: 'text-red-600' };
         };
 
         // --- UI UPDATE FUNCTIONS ---
@@ -223,6 +224,9 @@
         // --- EVENT LISTENERS ---
         coursesTbody.addEventListener('input', (event) => {
           if (event.target.classList.contains('score-input')) {
+            // Clamp value between 0 and 100
+            if (event.target.value > 100) event.target.value = 100;
+            if (event.target.value < 0) event.target.value = 0;
             calculateAndDisplayGpa();
           }
         });
