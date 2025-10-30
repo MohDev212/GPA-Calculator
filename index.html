@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Galala University GPA Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Add Babel to transpile TSX in the browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       /* Custom scrollbar for better aesthetics */
       ::-webkit-scrollbar {
@@ -23,20 +21,216 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #64748b; /* slate-500 */
       }
+      body {
+        font-family: sans-serif;
+        color: #1e293b; /* slate-800 */
+      }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-slate-100">
-    <div id="root"></div>
-    <!-- Add data-presets to tell Babel to transpile TypeScript -->
-    <script type="text/babel" data-presets="env,react,typescript" src="./index.tsx"></script>
+    <div id="app">
+      <header class="p-4 text-center">
+        <div class="inline-flex items-center gap-3">
+          <div class="p-2 bg-green-700 text-white font-bold text-2xl rounded-md">GU</div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-800">GALALA UNIVERSITY</h1>
+            <p class="text-xs sm:text-sm text-slate-500">Powered by Arizona State University</p>
+          </div>
+        </div>
+        <h2 class="mt-4 text-2xl sm:text-3xl font-semibold text-indigo-700">Semester GPA Calculator</h2>
+        <p class="text-slate-600 mt-1">Field of Dentistry / Year 1 / Semester 1</p>
+      </header>
+
+      <main>
+        <!-- GPA Display -->
+        <div class="sticky top-0 z-10 bg-slate-100/80 backdrop-blur-md p-4 sm:p-6 mb-6">
+          <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl mx-auto flex flex-col sm:flex-row justify-around items-center gap-4">
+            <div class="text-center">
+              <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Credits</p>
+              <p id="total-credits" class="text-3xl font-bold text-slate-700">0</p>
+            </div>
+            <div class="text-center border-t-2 sm:border-t-0 sm:border-l-2 sm:border-r-2 border-slate-200 px-0 sm:px-12 py-4 sm:py-0 my-4 sm:my-0">
+              <p class="text-lg font-medium text-slate-500 uppercase tracking-wider">Semester GPA</p>
+              <p id="gpa-value" class="text-6xl font-extrabold text-indigo-600 tracking-tight">0.00</p>
+              <p id="gpa-text" class="text-lg font-bold mt-1 text-slate-400">N/A</p>
+            </div>
+            <div class="text-center">
+              <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Quality Points</p>
+              <p id="total-points" class="text-3xl font-bold text-slate-700">0.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Courses Table -->
+        <div class="px-4 pb-12">
+          <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left text-slate-500">
+                <thead class="text-xs text-slate-700 uppercase bg-slate-200">
+                  <tr>
+                    <th scope="col" class="p-4">Course Name</th>
+                    <th scope="col" class="p-4 text-center">Credit Hours</th>
+                    <th scope="col" class="p-4">Score / Grade</th>
+                  </tr>
+                </thead>
+                <tbody id="courses-tbody">
+                  <!-- Rows will be inserted here by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            <div class="p-4 bg-slate-50 text-right">
+              <button id="reset-button" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // --- DATA AND CONSTANTS ---
+        const COURSES = [
+          { code: 'PHY113', name: 'Biophysics for Dentistry', creditHours: 2 },
+          { code: 'BMS112', name: 'General Anatomy for Dental Students', creditHours: 2 },
+          { code: 'BMS132', name: 'General Physiology (1) for Dental Students', creditHours: 1 },
+          { code: 'BMS122', name: 'General Histology for Dental Students', creditHours: 2 },
+          { code: 'BDS011', name: 'Dental Biomaterials I', creditHours: 4 },
+          { code: 'BDS021', name: 'Dental Anatomy I', creditHours: 3 },
+          { code: 'UC1', name: 'University Requirement 1', creditHours: 2 },
+          { code: 'UC2', name: 'University Requirement 2', creditHours: 2 },
+        ];
+
+        // --- DOM ELEMENTS ---
+        const coursesTbody = document.getElementById('courses-tbody');
+        const totalCreditsEl = document.getElementById('total-credits');
+        const gpaValueEl = document.getElementById('gpa-value');
+        const gpaTextEl = document.getElementById('gpa-text');
+        const totalPointsEl = document.getElementById('total-points');
+        const resetButton = document.getElementById('reset-button');
+
+        // --- CORE LOGIC ---
+        const getGradeFromScore = (score) => {
+          if (score === '' || score === null) {
+            return { letter: '—', points: -1 };
+          }
+          const s = parseFloat(score);
+          if (isNaN(s) || s < 0 || s > 100) {
+            return { letter: '—', points: -1 };
+          }
+          if (s > 97) return { letter: 'A+', points: 4.0 };
+          if (s >= 93) return { letter: 'A', points: 4.0 };
+          if (s >= 89) return { letter: 'A-', points: 3.7 };
+          if (s >= 84) return { letter: 'B+', points: 3.3 };
+          if (s >= 80) return { letter: 'B', points: 3.0 };
+          if (s >= 76) return { letter: 'B-', points: 2.7 };
+          if (s >= 73) return { letter: 'C+', points: 2.3 };
+          if (s >= 70) return { letter: 'C', points: 2.0 };
+          if (s >= 67) return { letter: 'C-', points: 1.7 };
+          if (s >= 64) return { letter: 'D+', points: 1.3 };
+          if (s >= 60) return { letter: 'D', points: 1.0 };
+          return { letter: 'F', points: 0.0 };
+        };
+        
+        const getGpaInterpretation = (gpaValue, totalCredits) => {
+            if (gpaValue >= 3.7) return { text: 'Excellent', color: 'text-green-500' };
+            if (gpaValue >= 3.0) return { text: 'Very Good', color: 'text-blue-500' };
+            if (gpaValue >= 2.0) return { text: 'Good', color: 'text-yellow-500' };
+            if (totalCredits > 0) return { text: 'Pass', color: 'text-orange-500' };
+            return { text: 'N/A', color: 'text-slate-400' };
+        };
+
+        // --- UI UPDATE FUNCTIONS ---
+        const calculateAndDisplayGpa = () => {
+          let totalPoints = 0;
+          let totalCredits = 0;
+          const scoreInputs = coursesTbody.querySelectorAll('input[type="number"]');
+
+          scoreInputs.forEach(input => {
+            const courseCode = input.dataset.code;
+            const course = COURSES.find(c => c.code === courseCode);
+            const score = input.value;
+            const gradeInfo = getGradeFromScore(score);
+
+            // Update letter grade in the UI
+            const letterGradeEl = document.getElementById(`grade-${courseCode}`);
+            if (letterGradeEl) {
+                letterGradeEl.textContent = gradeInfo.letter;
+            }
+
+            if (gradeInfo.points >= 0) {
+              totalPoints += gradeInfo.points * course.creditHours;
+              totalCredits += course.creditHours;
+            }
+          });
+
+          const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+          const gpaInfo = getGpaInterpretation(gpa, totalCredits);
+
+          totalCreditsEl.textContent = totalCredits;
+          gpaValueEl.textContent = gpa.toFixed(2);
+          totalPointsEl.textContent = totalPoints.toFixed(2);
+          gpaTextEl.textContent = gpaInfo.text;
+          gpaTextEl.className = `text-lg font-bold mt-1 ${gpaInfo.color}`;
+        };
+
+        const renderTable = () => {
+          let tableHtml = '';
+          COURSES.forEach(course => {
+            tableHtml += `
+              <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-200">
+                <td class="p-4 font-medium text-slate-800">
+                  <div class="flex flex-col">
+                    <span>${course.name}</span>
+                    <span class="text-xs text-slate-500 font-normal">${course.code}</span>
+                  </div>
+                </td>
+                <td class="p-4 text-center font-semibold text-slate-600">${course.creditHours}</td>
+                <td class="p-4 w-48">
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      data-code="${course.code}"
+                      class="score-input w-24 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                      aria-label="Score for ${course.name}"
+                      placeholder="0-100"
+                    />
+                    <span id="grade-${course.code}" class="font-bold text-lg text-slate-700 w-10 text-center" aria-live="polite">
+                      —
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+          coursesTbody.innerHTML = tableHtml;
+        };
+        
+        const resetCalculator = () => {
+            const scoreInputs = coursesTbody.querySelectorAll('input[type="number"]');
+            scoreInputs.forEach(input => {
+                input.value = '';
+            });
+            calculateAndDisplayGpa();
+        };
+
+        // --- EVENT LISTENERS ---
+        coursesTbody.addEventListener('input', (event) => {
+          if (event.target.classList.contains('score-input')) {
+            calculateAndDisplayGpa();
+          }
+        });
+        
+        resetButton.addEventListener('click', resetCalculator);
+
+        // --- INITIALIZATION ---
+        renderTable();
+        calculateAndDisplayGpa();
+      });
+    </script>
   </body>
 </html>
