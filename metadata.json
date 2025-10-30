@@ -1,0 +1,5 @@
+{
+  "name": "Galala University GPA Calculator",
+  "description": "A GPA calculator for the Field of Dentistry program at Galala University, based on the Year 1, Semester 1 study plan. Users can select their grades for each subject to see their calculated GPA.",
+  "requestFramePermissions": []
+}
