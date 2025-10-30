@@ -22,8 +22,17 @@
         background: #64748b; /* slate-500 */
       }
       body {
-        font-family: sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         color: #1e293b; /* slate-800 */
+        scroll-behavior: smooth;
+      }
+      /* Add focus state to table rows for better UX */
+      tr:focus-within {
+        background-color: #f8fafc; /* slate-50 */
+      }
+      /* Smooth transitions for GPA text color */
+      #gpa-text, #gpa-value {
+        transition: color 0.3s ease-in-out;
       }
     </style>
   </head>
@@ -47,16 +56,16 @@
           <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-4xl mx-auto flex flex-col sm:flex-row justify-around items-center gap-4">
             <div class="text-center">
               <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Credits</p>
-              <p id="total-credits" class="text-3xl font-bold text-slate-700">0</p>
+              <p id="total-credits" class="text-3xl font-bold text-slate-700" aria-live="polite">0</p>
             </div>
             <div class="text-center border-t-2 sm:border-t-0 sm:border-l-2 sm:border-r-2 border-slate-200 px-0 sm:px-12 py-4 sm:py-0 my-4 sm:my-0">
               <p class="text-lg font-medium text-slate-500 uppercase tracking-wider">Semester GPA</p>
-              <p id="gpa-value" class="text-6xl font-extrabold text-indigo-600 tracking-tight">0.00</p>
+              <p id="gpa-value" class="text-6xl font-extrabold text-indigo-600 tracking-tight" aria-live="polite">0.00</p>
               <p id="gpa-text" class="text-lg font-bold mt-1 text-slate-400">N/A</p>
             </div>
             <div class="text-center">
               <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Quality Points</p>
-              <p id="total-points" class="text-3xl font-bold text-slate-700">0.00</p>
+              <p id="total-points" class="text-3xl font-bold text-slate-700" aria-live="polite">0.00</p>
             </div>
           </div>
         </div>
@@ -112,13 +121,9 @@
 
         // --- CORE LOGIC ---
         const getGradeFromScore = (score) => {
-          if (score === '' || score === null) {
-            return { letter: '—', points: -1 };
-          }
+          if (score === '' || score === null) return { letter: '—', points: -1 };
           const s = parseFloat(score);
-          if (isNaN(s) || s < 0 || s > 100) {
-            return { letter: '—', points: -1 };
-          }
+          if (isNaN(s) || s < 0 || s > 100) return { letter: '—', points: -1 };
           if (s > 97) return { letter: 'A+', points: 4.0 };
           if (s >= 93) return { letter: 'A', points: 4.0 };
           if (s >= 89) return { letter: 'A-', points: 3.7 };
@@ -134,11 +139,11 @@
         };
         
         const getGpaInterpretation = (gpaValue, totalCredits) => {
-            if (gpaValue >= 3.7) return { text: 'Excellent', color: 'text-green-500' };
-            if (gpaValue >= 3.0) return { text: 'Very Good', color: 'text-blue-500' };
-            if (gpaValue >= 2.0) return { text: 'Good', color: 'text-yellow-500' };
-            if (totalCredits > 0) return { text: 'Pass', color: 'text-orange-500' };
-            return { text: 'N/A', color: 'text-slate-400' };
+            if (totalCredits === 0) return { text: 'N/A', textColor: 'text-slate-400', gpaColor: 'text-indigo-600' };
+            if (gpaValue >= 3.7) return { text: 'Excellent', textColor: 'text-green-500', gpaColor: 'text-green-600' };
+            if (gpaValue >= 3.0) return { text: 'Very Good', textColor: 'text-blue-500', gpaColor: 'text-blue-600' };
+            if (gpaValue >= 2.0) return { text: 'Good', textColor: 'text-yellow-500', gpaColor: 'text-yellow-600' };
+            return { text: 'Pass', textColor: 'text-orange-500', gpaColor: 'text-orange-600' };
         };
 
         // --- UI UPDATE FUNCTIONS ---
@@ -153,7 +158,6 @@
             const score = input.value;
             const gradeInfo = getGradeFromScore(score);
 
-            // Update letter grade in the UI
             const letterGradeEl = document.getElementById(`grade-${courseCode}`);
             if (letterGradeEl) {
                 letterGradeEl.textContent = gradeInfo.letter;
@@ -171,43 +175,41 @@
           totalCreditsEl.textContent = totalCredits;
           gpaValueEl.textContent = gpa.toFixed(2);
           totalPointsEl.textContent = totalPoints.toFixed(2);
+          
+          gpaValueEl.className = `text-6xl font-extrabold tracking-tight ${gpaInfo.gpaColor}`;
           gpaTextEl.textContent = gpaInfo.text;
-          gpaTextEl.className = `text-lg font-bold mt-1 ${gpaInfo.color}`;
+          gpaTextEl.className = `text-lg font-bold mt-1 ${gpaInfo.textColor}`;
         };
 
         const renderTable = () => {
-          let tableHtml = '';
-          COURSES.forEach(course => {
-            tableHtml += `
-              <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-200">
-                <td class="p-4 font-medium text-slate-800">
-                  <div class="flex flex-col">
-                    <span>${course.name}</span>
-                    <span class="text-xs text-slate-500 font-normal">${course.code}</span>
-                  </div>
-                </td>
-                <td class="p-4 text-center font-semibold text-slate-600">${course.creditHours}</td>
-                <td class="p-4 w-48">
-                  <div class="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      data-code="${course.code}"
-                      class="score-input w-24 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                      aria-label="Score for ${course.name}"
-                      placeholder="0-100"
-                    />
-                    <span id="grade-${course.code}" class="font-bold text-lg text-slate-700 w-10 text-center" aria-live="polite">
-                      —
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            `;
-          });
-          coursesTbody.innerHTML = tableHtml;
+          coursesTbody.innerHTML = COURSES.map(course => `
+            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors duration-200">
+              <td class="p-4 font-medium text-slate-800">
+                <div class="flex flex-col">
+                  <span>${course.name}</span>
+                  <span class="text-xs text-slate-500 font-normal">${course.code}</span>
+                </div>
+              </td>
+              <td class="p-4 text-center font-semibold text-slate-600">${course.creditHours}</td>
+              <td class="p-4 w-48">
+                <div class="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    data-code="${course.code}"
+                    class="score-input w-24 p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    aria-label="Score for ${course.name}"
+                    placeholder="0-100"
+                  />
+                  <span id="grade-${course.code}" class="font-bold text-lg text-slate-700 w-10 text-center" aria-live="polite">
+                    —
+                  </span>
+                </div>
+              </td>
+            </tr>
+          `).join('');
         };
         
         const resetCalculator = () => {
